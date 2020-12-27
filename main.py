@@ -3,7 +3,7 @@ import os
 from decimal import *
 import discord
 import random
-from MySqlConnector import MySqlConnector
+from MySqlTransactions import MySqlTransaction
 from dotenv import load_dotenv
 from discord.ext import commands
 from datetime import datetime
@@ -11,7 +11,6 @@ import asyncio
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD = os.getenv('DISCORD_GUILD')
 commandPrefix = '!'
 client = commands.Bot(command_prefix=commandPrefix)
 defaultColor = 0x000080
@@ -55,7 +54,7 @@ async def DM(ctx, user: discord.User, *, message=None):
 
 @client.command()
 async def balance(ctx):
-    connector = MySqlConnector(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     bal = connector.GetBalance(ctx.author.id)
     if bal is None:
         await ctx.channel.send('You do not have any balance!')
@@ -66,7 +65,7 @@ async def balance(ctx):
 async def deposit(ctx, amount: Decimal, touser: discord.User = None):
     if amount <= 0:
         return
-    connector = MySqlConnector(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     if touser is None:
         currBal = connector.GetBalance(ctx.author.id)
         if currBal is None:
@@ -89,7 +88,7 @@ async def deposit(ctx, amount: Decimal, touser: discord.User = None):
 async def withdraw(ctx, amount: Decimal):
     if amount <= 0:
         return
-    connector = MySqlConnector(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     currBal = connector.GetBalance(ctx.author.id)
     if currBal is not None and currBal >= amount:
         connector.UpdateBalance(ctx.author.id, currBal-amount)
@@ -101,14 +100,14 @@ async def withdraw(ctx, amount: Decimal):
 
 @client.command()
 async def returnallbalances(ctx):
-    connector = MySqlConnector(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     allbalances = connector.ReturnAllBalances()
     for (user, balance) in allbalances:
         await ctx.channel.send(f'User: <@{user}> | Balance: {balance}')
 
 @client.command()
 async def returnlogdata(ctx):
-    connector = MySqlConnector(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     allentries = connector.ReturnLog()
     for (EntryTime,TransactionAmount,DiscordID,RecipientID,WalletAddress) in allentries:
         await ctx.channel.send(f'User: <@{DiscordID}> | Transaction Amount: {TransactionAmount} | Recipient: <@{RecipientID}> | Entry Time: {EntryTime} | Wallet Address: {WalletAddress}')
