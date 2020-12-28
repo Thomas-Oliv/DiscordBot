@@ -2,7 +2,6 @@ import mysql.connector
 from datetime import datetime
 from MySqlConnector import MySqlConnector
 
-
 class MySqlAnime(MySqlConnector):
 
     def GetList(self, discordID):
