@@ -123,13 +123,16 @@ async def returnlogdata(ctx):
 async def GetAnimeList(ctx):
     connector = MySqlAnime(os.getenv('ANIMEUSER'), os.getenv('ANIMEPASSWORD'), os.getenv('HOST'), os.getenv('ANIMEDATABASE'), os.getenv('PORT'))
     result = connector.GetList(ctx.author.id)
+    index =0
     str_list = []
     if result is None:
         await ctx.channel.send("You are not currently tracking any anime!")
     else:
-        for row in result:
-            str_list.append(f'{row["title"]}\n')
-        await ctx.channel.send(''.join(str_list))
+        for (AnimeID,Title) in result:
+            str_list.append(f'{index}. {Title}\n')
+            index += 1
+        embedobj = discord.Embed(title=f'Currently Tracked Anime', description=''.join(str_list), color=defaultColor)
+        await ctx.channel.send(embed=embedobj)
 
 
 @client.command()
