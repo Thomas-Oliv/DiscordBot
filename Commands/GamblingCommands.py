@@ -2,38 +2,35 @@
 import os
 from decimal import *
 import discord
-import random
-from MySqlTransactions import MySqlTransaction
-from dotenv import load_dotenv
+from ConfigObjects import ConfigObjects
 from discord.ext import commands
-from datetime import datetime
+from Commands import HelperFunctions
+from MySQL.MySqlTransactions import *
 import asyncio
-from AnimeConnector import AnimeConnector
-from MySqlAnime import MySqlAnime
 
 
-class Gambling(commands.Cog, name = 'Gambling'):
+class Gambling(commands.Cog, name='Gambling'):
     def __init__(self, bot):
         self.bot = bot
         self._last_member_ = None
 
-    @client.command()
-    async def coinflip(ctx, typestr: str, opponent: discord.User = None):
+    @commands.command()
+    async def coinflip(self, ctx, typestr: str, opponent: discord.User = None):
         timeout = 60
         if typestr is None or (typestr.lower() != 'heads' and typestr.lower() != 'tails'):
             return
         if opponent is not None:
-            if opponent.id == ctx.author.id or opponent.id == client.user.id:
+            if opponent.id == ctx.author.id or opponent.id == self.bot.user.id:
                 return
 
         def check(reaction, user):
             if opponent is None:
-                return ((user.id != ctx.author.id and user.id != client.user.id) and str(reaction.emoji) == '✔') or (user.id == ctx.author.id and str(reaction.emoji) == '❌')
+                return ((user.id != ctx.author.id and user.id != self.bot.user.id) and str(reaction.emoji) == '✔') or (user.id == ctx.author.id and str(reaction.emoji) == '❌')
             else:
                 return user.id == opponent.id and (str(reaction.emoji) == '✔' or str(reaction.emoji) == '❌')
 
         embedobj = discord.Embed(title=f'Coin Flip', description='Please react to this message to participate in the '
-                                                                 'coinflip!', color=defaultColor)
+                                                                 'coinflip!', color=ConfigObjects.DEFAULT_COLOR.value)
         embedobj.set_footer(text='The user who initiated the flip can cancel by reacting with \'❌\' before'
                                  f' it has been accepted.\nNote this request will timeout after {timeout} seconds.')
         embedobj.add_field(name='Requested By', value=f'<@{ctx.author.id}>')
@@ -47,9 +44,9 @@ class Gambling(commands.Cog, name = 'Gambling'):
         await messageobj.add_reaction("✔")
         await messageobj.add_reaction("❌")
         try:
-            reactionObj, userObj = await client.wait_for("reaction_add", timeout=timeout, check=check)
+            reactionObj, userObj = await self.bot.wait_for("reaction_add", timeout=timeout, check=check)
             if str(reactionObj.emoji) == "✔":
-                await performflip(ctx, userObj, typestr)
+                await HelperFunctions.performflip(ctx, userObj, typestr)
             else:
                 await ctx.message.delete()
                 await messageobj.delete()
@@ -58,17 +55,17 @@ class Gambling(commands.Cog, name = 'Gambling'):
             await ctx.message.delete()
             await messageobj.delete()
 
-    @client.command()
-    async def balance(ctx):
+    @commands.command()
+    async def balance(self, ctx):
         connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
         bal = connector.GetBalance(ctx.author.id)
         if bal is None:
             await ctx.channel.send('You do not have any balance!')
         else:
-            await ctx.channel.send(f'Your Balance is {(bal):.8f}!')
+            await ctx.channel.send(f'Your Balance is {bal:.8f}!')
 
-    @client.command()
-    async def deposit(ctx, amount: Decimal, touser: discord.User = None):
+    @commands.command()
+    async def deposit(self, ctx, amount: Decimal, touser: discord.User = None):
         if amount <= 0:
             return
         connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
@@ -90,22 +87,22 @@ class Gambling(commands.Cog, name = 'Gambling'):
             await ctx.channel.send(f'{(amount):.8f} has been added to <@{touser.id}>\'s account.')
             connector.WriteTransactionLog(ctx.author.id, amount, touser.id, '')
 
-    @client.command()
-    async def withdraw(ctx, amount: Decimal):
+    @commands.command()
+    async def withdraw(self,ctx, amount: Decimal):
         if amount <= 0:
             return
         connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
         currBal = connector.GetBalance(ctx.author.id)
         if currBal is not None and currBal >= amount:
             connector.UpdateBalance(ctx.author.id, currBal - amount)
-            await ctx.channel.send(f'{(amount):.8f} has been withdrawn from your account. Your Balance is now {(currBal - amount):.8f}.')
+            await ctx.channel.send(f'{amount:.8f} has been withdrawn from your account. Your Balance is now {(currBal - amount):.8f}.')
             connector.WriteTransactionLog(ctx.author.id, (-amount), ctx.author.id, '')
         else:
             await ctx.channel.send('You cannot withdraw more than you have!')
             return
 
-    @client.command()
-    async def returnallbalances(ctx):
+    @commands.command()
+    async def returnallbalances(self, ctx):
         connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
         allbalances = connector.ReturnAllBalances()
         str_list = []
@@ -114,8 +111,8 @@ class Gambling(commands.Cog, name = 'Gambling'):
 
         await ctx.channel.send(''.join(str_list))
 
-    @client.command()
-    async def returnlogdata(ctx):
+    @commands.command()
+    async def returnlogdata(self, ctx):
         connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
         allentries = connector.ReturnLog()
         str_list = []

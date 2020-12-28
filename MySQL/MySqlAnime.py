@@ -1,6 +1,6 @@
 import mysql.connector
 from datetime import datetime
-from MySqlConnector import MySqlConnector
+from MySQL.MySqlConnector import MySqlConnector
 
 class MySqlAnime(MySqlConnector):
 
