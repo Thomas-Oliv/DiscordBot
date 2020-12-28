@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from datetime import datetime
 import asyncio
-
+from AnimeConnector import AnimeConnector
+from MySqlAnime import MySqlAnime
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 commandPrefix = '!'
@@ -100,17 +101,78 @@ async def withdraw(ctx, amount: Decimal):
 
 @client.command()
 async def returnallbalances(ctx):
-    connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
+    connector =  MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     allbalances = connector.ReturnAllBalances()
+    str_list = []
     for (user, balance) in allbalances:
-        await ctx.channel.send(f'User: <@{user}> | Balance: {balance}')
+        str_list.append(f'User: <@{user}> | Balance: {balance}\n')
+
+    await ctx.channel.send(''.join(str_list))
+
 
 @client.command()
 async def returnlogdata(ctx):
     connector = MySqlTransaction(os.getenv('USER'), os.getenv('PASSWORD'), os.getenv('HOST'), os.getenv('DATABASE'), os.getenv('PORT'))
     allentries = connector.ReturnLog()
-    for (EntryTime,TransactionAmount,DiscordID,RecipientID,WalletAddress) in allentries:
-        await ctx.channel.send(f'User: <@{DiscordID}> | Transaction Amount: {TransactionAmount} | Recipient: <@{RecipientID}> | Entry Time: {EntryTime} | Wallet Address: {WalletAddress}')
+    str_list = []
+    for (EntryTime, TransactionAmount, DiscordID, RecipientID, WalletAddress) in allentries:
+        str_list.append(f'User: <@{DiscordID}> | Transaction Amount: {TransactionAmount} | Recipient: <@{RecipientID}> | Entry Time: {EntryTime} | Wallet Address: {WalletAddress}\n')
+    await ctx.channel.send(''.join(str_list))
+
+@client.command()
+async def GetAnimeList(ctx):
+    connector = MySqlAnime(os.getenv('ANIMEUSER'), os.getenv('ANIMEPASSWORD'), os.getenv('HOST'), os.getenv('ANIMEDATABASE'), os.getenv('PORT'))
+    result = connector.GetList(ctx.author.id)
+    str_list = []
+    if result is None:
+        await ctx.channel.send("You are not currently tracking any anime!")
+    else:
+        for row in result:
+            str_list.append(f'{row["title"]}\n')
+        await ctx.channel.send(''.join(str_list))
+
+
+@client.command()
+async def Search(ctx, *, title):
+    timeout =60
+    connector = AnimeConnector()
+    results = connector.Search(title)
+    str_list = []
+    index = 0
+    emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
+
+    def check(reaction, user):
+        return user.id == ctx.author.id and (str(reaction.emoji) in emojis[0:index] or str(reaction.emoji) == '❌')
+    for row in results['data']['Page']['media']:
+        if(index == 10):
+            break;
+        else:
+            str_list.append(f'{emojis[index]}: {row["title"]["romaji"]} ({row["title"]["english"]})\n')
+            index += 1
+
+    embedobj = discord.Embed(title=f'Search Results', description=''.join(str_list), color=defaultColor)
+
+    embedobj.set_footer(text=f'Note this request will timeout after {timeout} seconds.')
+    embedobj.add_field(name='Requested By', value=f'<@{ctx.author.id}>')
+    embedobj.add_field(name='Searched for', value=f'\"{title}\"')
+
+    messageobj = await ctx.channel.send(embed=embedobj)
+    for i in range(index):
+        await messageobj.add_reaction(emojis[i])
+    await messageobj.add_reaction('❌')
+    try:
+        reactionObj, userObj = await client.wait_for("reaction_add", timeout=timeout, check=check)
+        if(reactionObj.emoji != '❌'):
+            title = await AddAnimeToList(ctx.author.id,results["data"]["Page"]["media"][emojis.index(reactionObj.emoji)])
+            await ctx.channel.send(f'{title} has been added.')
+        else:
+            await ctx.message.delete()
+            await messageobj.delete()
+    except asyncio.TimeoutError as error:
+        print(f'Search request has timed out for {ctx.author.name}!')
+        await ctx.message.delete()
+        await messageobj.delete()
+
 
 @client.command()
 async def coinflip(ctx, typestr: str, opponent: discord.User = None):
@@ -152,6 +214,20 @@ async def coinflip(ctx, typestr: str, opponent: discord.User = None):
         print(f'Coin Flip from {ctx.author.name} has timed out')
         await ctx.message.delete()
         await messageobj.delete()
+
+async def AddAnimeToList(id, selected):
+    sqlConnection = MySqlAnime(os.getenv('ANIMEUSER'), os.getenv('ANIMEPASSWORD'), os.getenv('HOST'), os.getenv('ANIMEDATABASE'), os.getenv('PORT'))
+    if selected["title"]["romaji"]:
+        title = selected["title"]["romaji"]
+    elif selected["title"]["english"]:
+        title = selected["title"]["english"]
+    else:
+        title = selected["title"]["native"]
+    sqlConnection.AddAnime(id, selected['id'], title)
+    return title
+
+
+
 
 async def performflip(ctx, opponent : discord.User = None, typestr: str = None):
     random.seed(datetime.now().timestamp())
@@ -250,5 +326,7 @@ async def uwuCheck(message):
         return True
     else:
         return False
+
+
 
 client.run(TOKEN)

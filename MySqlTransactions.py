@@ -20,7 +20,7 @@ class MySqlTransaction(MySqlConnector):
         cursor.close()
         cnx.close()
 
-    def WriteTransactionLog(self, discordID, amount,recipientID, walletAddress):
+    def WriteTransactionLog(self, discordID, amount, recipientID, walletAddress):
         cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, port=self.port, database=self.database);
         cursor = cnx.cursor()
         writelogcmd = 'INSERT INTO userwalletlog (EntryTime,TransactionAmount,DiscordID,RecipientID,WalletAddress) VALUES (%(time)s, %(amount)s, %(id)s, %(recipient)s, %(address)s)'
