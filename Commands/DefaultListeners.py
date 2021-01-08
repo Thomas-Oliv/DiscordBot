@@ -2,11 +2,15 @@ import logging
 import math
 import sys
 import traceback
-from discord.ext import commands
+from discord.ext import commands,tasks
 from dotenv import load_dotenv
 from Functions.KeywordFunctions import pogCheck,owoCheck,uwuCheck,tiddyCheck,bootyCheck,eggplantCheck
+from Functions.HelperFunctions import notifyUsers
 import discord
+from datetime import datetime
 import os
+import asyncio
+
 logger = logging.getLogger(__name__)
 load_dotenv(override=True)
 
@@ -15,12 +19,21 @@ class DefaultListeners(commands.Cog, name='DefaultListeners'):
     def __init__(self, bot):
         self.bot = bot
         self._last_member_ = None
+        self.notify.start()
 
     @commands.Cog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
             print(f'{guild.name}(id: {guild.id})')
             print(f'{self.bot.user} has connected to Discord!')
+
+
+    @tasks.loop(hours=1)
+    async def notify(self):
+        if datetime.now().hour == os.getenv('NOTIFY_HOUR'):
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+            await notifyUsers(self.bot, today)
+            await asyncio.sleep(3600)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

@@ -5,7 +5,7 @@ import asyncio
 import logging
 import traceback
 import os
-
+from Functions.HelperFunctions import channelcheck
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -19,8 +19,9 @@ class Helper(commands.Cog, name='Helper'):
     @commands.command(aliases=['Help', 'HELP'])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def help(self, ctx, args=None):
+        if not await channelcheck(ctx):
+            return
         try:
-
             timeout = 60
             help_embed = discord.Embed(title="Help Menu", color=int(os.getenv("DEFAULT_COLOR")))
             command_names_list = [x.name for x in self.bot.commands]

@@ -5,7 +5,7 @@ from datetime import datetime
 from discord.utils import get
 import logging
 import traceback
-
+from Functions.HelperFunctions import notifyUsers,channelcheck
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,8 @@ class Debug(commands.Cog, name='Debug'):
                       description='None',
                       aliases=['ThrowError', 'THROWERROR', 'ERROR', 'Error', 'error'])
     async def throwerror(self, ctx):
+        if not await channelcheck(ctx):
+            return
         try:
             raise Exception('Sample Error')
         except Exception as ex:
@@ -40,4 +42,13 @@ class Debug(commands.Cog, name='Debug'):
                       description='None',
                       aliases=['Category', 'CATEGORY'])
     async def category(self, ctx):
+        if not await channelcheck(ctx):
+            return
         await ctx.channel.send(f'Category ID: {ctx.channel.category_id}')
+
+    @commands.command()
+    async def notify(self, ctx):
+        if not await channelcheck(ctx):
+            return
+        today = datetime.now().replace( hour=0, minute=0, second=0, microsecond=0).timestamp()
+        await notifyUsers(self.bot, today)

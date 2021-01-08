@@ -3,11 +3,14 @@ import logging
 import discord
 import traceback
 import os
+from datetime import datetime
+from Functions.HelperFunctions import channelcheck
+import asyncio
 from discord.ext import commands
 from discord.utils import get
 logger = logging.getLogger(__name__)
 load_dotenv(override=True)
-from datetime import datetime
+
 class Admin(commands.Cog, name='Admin'):
     def __init__(self, bot):
         self.bot = bot
@@ -22,6 +25,8 @@ class Admin(commands.Cog, name='Admin'):
                       usage=f'`{os.getenv("COMMAND_SYMBOL")}dm @User Hello`',
                       description='None', aliases=['DM'])
     async def dm(self, ctx, user: discord.User, *, message=None):
+        if not await channelcheck(ctx):
+            return
         message = message or "This Message is sent via DM"
         await user.send(message)
 
@@ -32,6 +37,8 @@ class Admin(commands.Cog, name='Admin'):
                       description='None', aliases=['SHUTDOWN', 'Shutdown'])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def shutdown(self, ctx):
+        if not await channelcheck(ctx):
+            return
         try:
             await ctx.channel.send(f"The bot will be shutting down for maintenance shortly. Commands are being locked.")
             for command in self.bot.commands:

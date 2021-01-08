@@ -1,7 +1,8 @@
 import requests
 
 class AnimeConnector:
-    def Search(self, title: str ):
+    @staticmethod
+    def Search(title: str ):
         # Here we define our query as a multi-line string
         query = '''
         query ($title: String) {
@@ -27,12 +28,14 @@ class AnimeConnector:
         # Make the HTTP Api request and return
         return requests.post(url, json={'query': query, 'variables': variables}).json()
 
-    def GetEpisodesByID(self, id: int):
+    @staticmethod
+    def getepisodesbyid( id: int):
         # Here we define our query as a multi-line string
         query = '''
         query ($id: Int) {
-            media (id: $id, type: ANIME, status: RELEASING) { 
+            Media (id: $id, type: ANIME) { 
                 id
+                status
                 title {
                   romaji
                   english
@@ -49,7 +52,6 @@ class AnimeConnector:
               }
             }
            '''
-
         # Define our query variables and values that will be used in the query request
         variables = {
             "id": id

@@ -25,3 +25,41 @@ class MySqlAnime(MySqlConnector):
             cnx.commit()
         cursor.close()
         cnx.close()
+
+    def UntrackAnime(self,AnimeID):
+        cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, port=self.port, database=self.database)
+        cursor = cnx.cursor()
+        deletecmd = "DELETE FROM trackedanime WHERE AnimeID = %(animeID)s"
+        cursor.execute(deletecmd, {"animeID": AnimeID})
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+    def RemoveAnime(self,DiscordID, AnimeID):
+        cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, port=self.port, database=self.database)
+        cursor = cnx.cursor()
+        deletecmd = "DELETE FROM trackedanime WHERE AnimeID = %(animeID)s AND DiscordID = %(discordID)s"
+        cursor.execute(deletecmd, {"animeID": AnimeID, "discordID": DiscordID})
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+    def RemoveAllAnime(self,DiscordID):
+        cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, port=self.port, database=self.database)
+        cursor = cnx.cursor()
+        deletecmd = "DELETE FROM trackedanime WHERE DiscordID = %(discordID)s"
+        cursor.execute(deletecmd, {"discordID": DiscordID})
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+
+    def getalltracked(self):
+        cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, port=self.port, database=self.database)
+        cursor = cnx.cursor()
+        searchcmd = "SELECT AnimeID, DiscordID FROM trackedanime"
+        cursor.execute(searchcmd)
+        result = cursor.fetchall()
+        cursor.close()
+        cnx.close()
+        return result
