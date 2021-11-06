@@ -1,2 +1,4 @@
 /.env
 /datalog.log
+/venv
+/.idea
